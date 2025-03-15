@@ -781,21 +781,20 @@ def run_trainable_memory_train_and_test(
         model_name = 'resnet34'
     ):
 
-    # metrics_trainable = run_cifar10_experiment(
-    #     memory_module_class=TrainableMemory,
-    #     memory_size=memory_size,
-    #     confidence_threshold=confidence_threshold,
-    #     num_epochs=num_epochs,
-    #     batch_size=batch_size,
-    #     memory_loss_weight=memory_loss_weight,
-    #     model_name = model_name
-    # )
+    metrics_trainable = run_cifar10_experiment(
+        memory_module_class=TrainableMemory,
+        memory_size=memory_size,
+        confidence_threshold=confidence_threshold,
+        num_epochs=num_epochs,
+        batch_size=batch_size,
+        memory_loss_weight=memory_loss_weight,
+        model_name = model_name
+    )
     
-    # print("\nTrainable Memory Results:")
-    # print(f"Test Accuracy: {metrics_trainable['final_test_accuracy']:.2f}%")
-    # print(f"Memory Usage: {metrics_trainable['final_memory_usage']:.2f}%")
+    print("\nTrainable Memory Results:")
+    print(f"Test Accuracy: {metrics_trainable['final_test_accuracy']:.2f}%")
+    print(f"Memory Usage: {metrics_trainable['final_memory_usage']:.2f}%")
     
-    # Create model for speed evaluation
     backbone = timm.create_model(model_name, pretrained=True, num_classes=0)
     model = EnhancedClassifier(
         memory_module_class=TrainableMemory,        
@@ -855,8 +854,6 @@ def run_cached_memory_train_and_test(
                                           torch.device('cuda' if torch.cuda.is_available() else 'cpu'))    
     
 
-   
-
 if __name__ == "__main__":
     memory_size = 10000
     batch_size = 128
@@ -864,14 +861,14 @@ if __name__ == "__main__":
     num_epochs = 5
     memory_loss_weight = 0.4
     model_name = 'resnet50'
-    # run_cached_memory_train_and_test(
-    #     memory_size,
-    #     batch_size,
-    #     confidence_threshold,
-    #     num_epochs,
-    #     memory_loss_weight,
-    #     model_name
-    #     )
+    run_cached_memory_train_and_test(
+        memory_size,
+        batch_size,
+        confidence_threshold,
+        num_epochs,
+        memory_loss_weight,
+        model_name
+        )
     run_trainable_memory_train_and_test(
         memory_size,
         batch_size,
