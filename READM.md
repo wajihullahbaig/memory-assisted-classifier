@@ -253,7 +253,11 @@ Memory path is 1.08x slower than neural network
 ```
 
 
-## 🔧 Implementation Details
+## Graphs and Result plots
+Cached Memory 
+![Cached Memory Plots](memory_classifier_metrics_cachedmemory.png)
+Trainable Memory
+![Trainable Memory Plots](memory_classifier_metrics_trainablememory.png)
 
 ### 📦 Dependencies
 
