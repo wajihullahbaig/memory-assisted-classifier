@@ -855,10 +855,10 @@ def run_cached_memory_train_and_test(
     
 
 if __name__ == "__main__":
-    memory_size = 10000
+    memory_size = 8000
     batch_size = 128
-    confidence_threshold = 0.85
-    num_epochs = 5
+    confidence_threshold = 0.95
+    num_epochs = 50
     memory_loss_weight = 0.4
     model_name = 'resnet50'
     run_cached_memory_train_and_test(
