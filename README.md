@@ -1,334 +1,137 @@
-# 🧠 Memory-Enhanced Neural Network with Cached and Trainable Memory Modules 🔄
+# Memory-Assisted Early-Exit Classifier
 
-## 📊 Overview
+A ResNet that answers easy images from a memory instead of running the whole network.
 
-This repository contains a PyTorch implementation of a neural network architecture that incorporates trainable memory modules. The architecture enhances standard neural networks by adding memory components that can retrieve and store feature representations, leading to improvements in both accuracy and inference speed for certain types of inputs.
-
-## 🏗️ Architecture
-
-### 🔩 Core Components
-
-1. **Memory Modules**:
-   - **TrainableMemory**: A fully differentiable memory module with learnable parameters
-   - **CachedMemory**: A simplified memory module that directly stores feature vectors
-
-2. **EnhancedClassifier**: A wrapper that combines a traditional neural network with either memory module.
-
-### ⚙️ How It Works
-
-The system operates with a dual-path architecture:
+The network is cut in two. After the early stages, a small key is computed and looked up in a
+memory of training examples (k-nearest neighbours). If the neighbours agree strongly, the
+memory's answer is returned and the remaining stages are **skipped**. Otherwise the image goes
+through the rest of the network as usual.
 
 ```
-                      ┌─► Memory Retrieval ─┐
-                      │                     │
-Input ─► Backbone ─► Features               ├─► Final Prediction
-                      │                     │
-                      └─► Neural Network ───┘
+image -> early stages -> key -> memory (k-NN) -- confident? --> answer   (fast path)
+                                                    |
+                                                    no
+                                                    v
+                                     late stages -> head -> answer       (full path)
 ```
 
-During inference:
-1. Features are extracted from the input using the backbone network
-2. The memory module retrieves the most similar stored item and its confidence score
-3. If the confidence exceeds a threshold, the memory prediction is used
-4. Otherwise, the neural network prediction is used
+The confidence threshold is picked on the validation set: the lowest threshold (most early
+exits) whose accuracy stays within `max_drop` points (default 0.5) of the full network.
 
-## 💾 Memory Module Details
+## Results
 
-### TrainableMemory
+CIFAR-10 upscaled to 64px, ResNet-18 (ImageNet-pretrained, timm), memory after `layer2`,
+6000 steps, single run with seed 0. `baseline` is the same network trained without the
+memory loss. Speedup is measured against the same model running the full network.
 
-The `TrainableMemory` class implements a fully differentiable memory module with learnable parameters:
+| Test set (10k images)                        | memory                   | baseline                 |
+|----------------------------------------------|--------------------------|--------------------------|
+| Full network accuracy                        | 93.32%                   | 93.41%                   |
+| Memory-only accuracy (k-NN after `layer2`)   | 90.46%                   | 67.63%                   |
+| **Early-exit accuracy**                      | **92.79%**               | 93.06%                   |
+| **Images that exit early**                   | **85.4%**                | 18.4%                    |
+| Threshold (picked on validation)             | 0.81                     | 0.81                     |
+| GPU throughput, batch 256 (img/s)            | 5178 -> 6866 (**1.33x**) | 5181 -> 5120 (0.99x)     |
+| CPU throughput, batch 1 (img/s)              | 145 -> 246 (**1.70x**)   | 149 -> 152 (1.02x)       |
 
-```
-┌───────────────────────────────────────────────────────────────────────────────┐
-│                         TRAINABLE MEMORY MODULE                               │
-├───────────────────────────────────────────────────────────────────────────────┤
-│                                                                               │
-│  ┌─────────────────────┐                                                      │
-│  │ LEARNABLE PARAMETERS│                                                      │
-│  │ ┌───────────────┐   │  ┌─────────────────────────┐                         │
-│  │ │ Memory Keys   │◄──┼──┤                         │                         │
-│  │ │ [M×feature_dim]   │  │                         │                         │
-│  │ └───────────────┘   │  │                         │                         │
-│  │ ┌───────────────┐   │  │                         │  ┌─────────────────┐    │
-│  │ │ Memory Values │◄──┼──┤   SIMILARITY COMPUTE    │  │  CONFIDENCE     │    │
-│  │ │ [M×num_classes]   │  │   (Cosine Distance)     │◄─┤  THRESHOLDING   │◄───┼─ Query
-│  │ └───────────────┘   │  │                         │  │                 │    │  Features
-│  └─────────────────────┘  │                         │  └─────────────────┘    │
-│                           │                         │           │             │
-│                           │                         │           │             │
-│                           │                         │           ▼             │
-│                           └─────────────────────────┘    ┌─────────────────┐  │
-│                                     │                    │ Class Prediction │  │
-│                                     │                    │ & Confidence     │  │
-│                                     │                    └─────────────────┘  │
-│                                     ▼                                         │
-│                           ┌─────────────────────────┐                         │
-│                           │ MEMORY CONTRASTIVE LOSS │                         │
-│                           │ COMPUTATION             │                         │
-│                           └─────────────────────────┘                         │
-│                                     │                                         │
-│                                     ▼                                         │
-│                              Loss for Training                                │
-│                                                                               │
-├───────────────────────────────────────────────────────────────────────────────┤
-│                            MEMORY OPERATIONS                                  │
-├───────────────────────────────────────────────────────────────────────────────┤
-│                                                                               │
-│  ┌─────────────────┐     ┌──────────────────────────┐     ┌─────────────────┐ │
-│  │     RETRIEVE    │     │        UPDATE            │     │   CONTRASTIVE   │ │
-│  │                 │     │                          │     │   LOSS COMPUTE  │ │
-│  │ 1. Normalize    │     │ 1. Check if memory full  │     │                 │ │
-│  │    features     │     │ 2. If not full:          │     │ 1. Match query  │ │
-│  │ 2. Calculate    │     │    - Add to unused slots │     │    with memory  │ │
-│  │    similarity   │     │ 3. If full:              │     │ 2. Create pos/  │ │
-│  │ 3. Find nearest │     │    - Check similarity    │     │    neg masks    │ │
-│  │    neighbors    │     │    - Replace low         │     │ 3. Apply temp-  │ │
-│  │ 4. Return class │     │      confidence items    │     │    scaled       │ │
-│  │    + confidence │     │                          │     │    softmax      │ │
-│  └─────────────────┘     └──────────────────────────┘     └─────────────────┘ │
-│                                                                               │
-└───────────────────────────────────────────────────────────────────────────────┘
-```
+Takeaways:
 
-#### Key Features:
-- Uses learnable parameters for memory keys and values
-- Memory keys store feature representations
-- Memory values store one-hot encoded class distributions
-- Fully differentiable for end-to-end training
-- Dynamic memory management that replaces low-confidence items when full
+- With the memory loss, 85% of test images skip `layer3`, `layer4` and the head. Accuracy
+  drops by 0.5 points (93.3 -> 92.8). CPU throughput goes up 1.7x and GPU throughput 1.33x.
+- Without the memory loss (baseline), features after `layer2` are poor for k-NN (68%), so
+  only 18% of images can exit and there is no speedup.
+- The memory loss costs almost nothing on the full network (93.32 vs 93.41).
+- The CPU number was measured while another job was using the machine. An earlier run of the
+  same configuration measured 2.02x (see the table below).
 
-### CachedMemory
+Full logs: [results/train.log](results/train.log). All numbers: [results/results.json](results/results.json).
 
-The `CachedMemory` class implements a simpler, non-parametric memory module:
+![Accuracy vs early exits](results/tradeoff.png)
+![Summary](results/summary.png)
+![Training](results/training.png)
 
-```
-┌───────────────────────────────────────────────────────────────────────────────┐
-│                          CACHED MEMORY MODULE                                 │
-├───────────────────────────────────────────────────────────────────────────────┤
-│                                                                               │
-│  ┌─────────────────────┐                                                      │
-│  │ DIRECT STORAGE      │                                                      │
-│  │ ┌───────────────┐   │  ┌─────────────────────────┐                         │
-│  │ │ Memory Keys   │◄──┼──┤                         │                         │
-│  │ │ [stored features] │  │                         │                         │
-│  │ └───────────────┘   │  │                         │                         │
-│  │ ┌───────────────┐   │  │                         │  ┌─────────────────┐    │
-│  │ │ Memory Values │◄──┼──┤   SIMILARITY COMPUTE    │  │  CONFIDENCE     │    │
-│  │ │ [class labels]    │  │   (Cosine Distance)     │◄─┤  THRESHOLDING   │◄───┼─ Query
-│  │ └───────────────┘   │  │                         │  │                 │    │  Features
-│  └─────────────────────┘  │                         │  └─────────────────┘    │
-│                           │                         │           │             │
-│                           │                         │           │             │
-│                           │                         │           ▼             │
-│                           └─────────────────────────┘    ┌─────────────────┐  │
-│                                                          │ Class Prediction │  │
-│                                                          │ & Confidence     │  │
-│                                                          └─────────────────┘  │
-│                                                                               │
-├───────────────────────────────────────────────────────────────────────────────┤
-│                            MEMORY OPERATIONS                                  │
-├───────────────────────────────────────────────────────────────────────────────┤
-│                                                                               │
-│  ┌─────────────────┐     ┌──────────────────────────┐     ┌─────────────────┐ │
-│  │     RETRIEVE    │     │        UPDATE            │     │   CONTRASTIVE   │ │
-│  │                 │     │                          │     │   LOSS COMPUTE  │ │
-│  │ 1. Normalize    │     │ 1. Check if memory full  │     │                 │ │
-│  │    features     │     │ 2. If not full:          │     │ 1. Match query  │ │
-│  │ 2. Calculate    │     │    - Directly store new  │     │    with memory  │ │
-│  │    similarity   │     │      features & labels   │     │ 2. Create pos/  │ │
-│  │ 3. Find nearest │     │ 3. If full:              │     │    neg masks    │ │
-│  │    neighbors    │     │    - Check similarity    │     │ 3. Handle edge  │ │
-│  │ 4. Return class │     │    - Replace same-class  │     │    cases for    │ │
-│  │    + confidence │     │      or lowest similarity│     │    batch size   │ │
-│  └─────────────────┘     └──────────────────────────┘     └─────────────────┘ │
-│                                                                               │
-└───────────────────────────────────────────────────────────────────────────────┘
+### Choosing the exit point
+
+Memory runs only, same settings otherwise:
+
+| exit after | image size | full acc | early-exit acc | exits | GPU speedup | CPU speedup |
+|---|---|---|---|---|---|---|
+| layer3 | 32 | 87.89 | 87.83 | 100% | 1.08x | 1.52x |
+| layer2 | 32 | 87.17 | 87.38 | 90% | 0.73x | 1.64x |
+| layer3 | 64 | 93.94 | 93.65 | 100% | 1.17x | 1.27x |
+| layer2 | 64 | 93.32 | 92.79 | 85% | 1.14x | 2.02x |
+
+- A larger input gives about +6 points of accuracy. ImageNet-pretrained networks prefer bigger images.
+- Exiting after `layer2` skips about half the network, so it gives the largest CPU speedup.
+- Exiting after `layer3` keeps more accuracy but only skips `layer4`.
+- GPU gains are small: at these image sizes a batched GPU is not compute-bound, and splitting a
+  batch into hits and misses has its own cost. Early exit pays off most on CPU / edge devices
+  and for single-image latency.
+
+## How it works
+
+- **Memory** ([mac/memory.py](mac/memory.py)): a ring buffer of normalised keys and labels.
+  Reads are a similarity-weighted k-NN vote, and the vote share is the confidence. It is
+  stored as buffers, so it is saved with the model.
+- **Model** ([mac/model.py](mac/model.py)): `early -> proj` gives the memory key and
+  `late -> head` gives the full prediction. `predict(x, threshold)` runs the late stages
+  only for images the memory is unsure about.
+- **Training** ([mac/train.py](mac/train.py)): cross-entropy on the full network plus a
+  supervised contrastive loss that pulls each key towards same-class memory entries. The loop
+  is step-based, with periodic validation, early stopping on validation accuracy, and the best
+  weights restored at the end.
+- **Evaluation** ([mac/evaluate.py](mac/evaluate.py)): both paths run once on every image,
+  so every threshold can be scored offline. Speed is measured wall-clock: GPU throughput at
+  batch 256 and CPU latency at batch 1.
+- **Data** ([mac/data.py](mac/data.py)): CIFAR-10 kept on the GPU, with augmentation done on
+  the GPU (no dataloader workers). 45k train / 5k val / 10k test.
+
+## Usage
+
+```bash
+pip install -r requirements.txt
+python main.py                          # memory + baseline runs, plots in results/
+python main.py --runs memory            # one run
+python main.py --exit-layer layer2      # exit earlier: faster, less accurate memory
+python main.py --max-drop 1.0           # trade more accuracy for more early exits
+python main.py --resume                 # continue from results/<run>_last.pt
 ```
 
-#### Key Features:
-- Directly stores feature vectors and class labels
-- Non-parametric approach (no learnable parameters)
-- Uses direct similarity comparison
-- Intelligent replacement strategy when memory is full
-- Prioritizes replacing items of the same class when possible
+Every field in [mac/config.py](mac/config.py) is a command-line flag. VS Code launch
+configurations (train, resume, single run, smoke test) are in [.vscode/launch.json](.vscode/launch.json).
 
-### Key Differences Between Memory Implementations
+Each run writes to `results/`:
 
-| Feature | TrainableMemory | CachedMemory |
-|---------|-----------------|--------------|
-| Parameters | Learnable memory keys and values | Direct storage (no parameters) |
-| Storage Format | Keys: Features, Values: One-hot encoded classes | Keys: Features, Values: Class labels |
-| Differentiability | Fully differentiable | Non-differentiable storage |
-| Memory Management | Replaces least confident items | Prioritizes same-class replacement |
-| Training | Optimizes memory contents via backprop | Only stores examples, no optimization |
-| Use Case | When end-to-end training is needed | When direct storage is sufficient |
+- `train.log`: progress at every evaluation, plus the final results table
+- `results.json`: config, final metrics and training history
+- `training.png`, `tradeoff.png`, `summary.png`: plots
+- `<run>.pt`: best weights, memory included
+- `<run>_last.pt`: checkpoint used by `--resume`
 
-## 🔁 Training Process
+A checkpoint is saved at every evaluation, so an interrupted run can be resumed with
+`--resume`. Training uses fp16 mixed precision on CUDA.
 
-The system is trained using a combination of:
-
-1. **Classification Loss**: Standard cross-entropy loss for neural network predictions.
-2. **Memory Contrastive Loss**: Encourages clustering of features from the same class in the embedding space.
-
-The training process:
-1. Computes features for each input batch
-2. Calculates both classification and memory contrastive losses
-3. Updates model parameters through backpropagation
-4. Updates the memory module with new feature-label pairs
-
-## ⚡ Dynamic Memory Management
-
-Both memory implementations include sophisticated memory management:
-
-1. **Initial Filling**: When memory is not full, new examples are added directly
-2. **Replacement Strategy**: Once memory is full:
-   - For each new example, similarity with all memory items is calculated
-   - If similarity is below threshold (indicating a novel example):
-     - **TrainableMemory**: Replaces the least confident memory item
-     - **CachedMemory**: First tries to replace an item of the same class with lowest similarity, then the overall lowest similarity item
-
-This dynamic approach ensures that memory maintains high-quality examples and can adapt to new patterns over time.
-
-## ⚡ Inference and Speed Advantages
-
-The dual-path architecture offers a significant speed advantage:
-
-- **Memory Path**: Fast lookup that only requires computing feature similarity
-- **Neural Network Path**: Full forward pass through the classifier network
-
-For inputs with high similarity to stored memory entries, the memory path can be significantly faster than the full neural network computation.
-
-## 📏 Metrics and Evaluation
-
-The system tracks several important metrics:
-
-1. **Accuracy**: Standard classification accuracy on test data
-2. **Memory Usage**: Percentage of test samples that use the memory path
-3. **Inference Speed**: Comparison of speed between memory and neural network paths
+## Project layout
 
 ```
------------------------------------------------
-Parameters
------------------------------------------------
-- Memory size: 10000
-- Confidence threshold: 0.85
-- Number of epochs: 5
-- Batch size: 128
-- Memory loss weight: 0.4
-
-------------------------------------------------
-Cached Memory Results.
-------------------------------------------------
-Epoch 5/5 Summary:
-Train Loss: 0.8939
-Memory Loss: 0.5092
-Train Accuracy: 83.06%
-Test Accuracy: 84.67%
-Memory Usage: 53.46%
-Memory Size: 10000/10000
-Memory is full
-------------------------------------------------
-Average memory path time: 0.17 ms per sample
-Average neural network path time: 0.17 ms per sample
-Memory path is 1.01x slower than neural network
-Running Enhanced CIFAR-10 experiment with TrainableMemory:
-
-
-------------------------------------------------
-Trainable Memory Results.
-------------------------------------------------
-Epoch 5/5 Summary:
-Train Loss: 1.5438
-Memory Loss: 1.3847
-Train Accuracy: 79.29%
-Test Accuracy: 83.38%
-Memory Usage: 96.43%
-Memory Size: 10000/10000
-Memory is full
------------------------------------------------
-Average memory path time: 0.21 ms per sample
-Average neural network path time: 0.19 ms per sample
-Memory path is 1.08x slower than neural network
-
+main.py           run experiments, write plots and results.json
+mac/config.py     all settings
+mac/data.py       CIFAR-10 on the GPU
+mac/memory.py     k-NN memory
+mac/model.py      early-exit ResNet
+mac/train.py      training loop
+mac/evaluate.py   metrics, threshold calibration, speed benchmark
+mac/plots.py      figures
 ```
 
+## Related work
 
-## Graphs and Result plots
-Cached Memory 
-![Cached Memory Plots](memory_classifier_metrics_cachedmemory.png)
-Trainable Memory
-![Trainable Memory Plots](memory_classifier_metrics_trainablememory.png)
+- Kaiser et al., *Learning to Remember Rare Events*, ICLR 2017 (key-value memory with k-NN read-out)
+- Teerapittayanon et al., *BranchyNet*, ICPR 2016 (early-exit networks)
+- Khosla et al., *Supervised Contrastive Learning*, NeurIPS 2020
+- Wu et al., *Unsupervised Feature Learning via Non-Parametric Instance Discrimination*, CVPR 2018 (memory bank)
 
-### 📦 Dependencies
+## Contributors
 
-- PyTorch
-- torchvision
-- timm (for backbone models)
-- matplotlib (for visualization)
-- tqdm (for progress tracking)
-
-### 🎛️ Key Parameters
-
-- **Memory Size**: Controls the number of feature vectors that can be stored
-- **Confidence Threshold**: Sets the minimum confidence required to use memory predictions
-- **Memory Loss Weight**: Controls the balance between classification and memory contrastive losses
-- **Similarity Threshold**: Determines when to replace items in the memory
-
-## 🚀 Usage
-
-The main experiment function `run_cifar10_experiment()` provides a complete training and evaluation pipeline on the CIFAR-10 dataset. It handles:
-
-1. Data loading and preprocessing
-2. Model creation and training
-3. Evaluation and metric tracking
-4. Visualization of training progress
-
-## 📈 Performance Analysis
-
-The system outputs several visualizations to analyze performance:
-
-1. **Loss Curves**: Training and validation losses over epochs
-2. **Memory Loss**: Evolution of the contrastive loss component
-3. **Accuracy Curves**: Training and test accuracies over epochs
-4. **Memory Usage**: Percentage of test samples using the memory path over time
-
-## 🔬 Advanced Features
-
-### ⏱️ Speed Evaluation
-
-The `evaluate_inference_speed()` function provides detailed timing analysis, comparing:
-- Feature extraction time
-- Memory retrieval time
-- Neural network inference time
-
-This helps quantify the speed advantages of the memory-based approach.
-
-## 🧪 Theoretical Background
-
-This implementation draws inspiration from several key concepts in machine learning:
-
-1. **Contrastive Learning**: Using similarity metrics to group similar samples
-2. **Knowledge Distillation**: Leveraging a complex model to train a simpler system
-3. **Nearest Neighbor Classification**: Making predictions based on similarity to known examples
-4. **Memory Networks**: Neural networks augmented with explicit memory components
-5. **Experience Replay**: Storing and reusing past experiences for learning
-
-## 🔮 Potential Applications
-
-This architecture is particularly well-suited for:
-
-1. **Few-shot Learning**: Rapidly adapting to new classes with limited examples
-2. **Continual Learning**: Adding new knowledge without catastrophic forgetting
-3. **Acceleration**: Speeding up inference for common input patterns. 
-4. **Interpretability**: Memory retrieval provides insight into prediction rationale
-5. **Resource Constrained Environments**: Using memory for faster inference on edge devices
-
-## 🔭 Future Work
-
-Potential extensions to the current implementation include:
-
-1. **Dynamic Memory Management**: More sophisticated strategies for memory replacement (implemented!)
-2. **Hierarchical Memory**: Multiple memory levels with different access patterns
-3. **Attention Mechanisms**: Weighted memory retrieval based on context
-4. **Memory Compression**: Techniques to store more examples within a fixed memory budget
-5. **Meta-Learning**: Learning optimal memory update and retrieval strategies
+- [Wajih Ullah Baig](https://github.com/wajihullahbaig)
+- Claude (Anthropic)

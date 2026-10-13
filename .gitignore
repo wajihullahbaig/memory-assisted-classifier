@@ -11,7 +11,8 @@ venv/
 ENV/
 .pytest_cache/
 .coverage
-.vscode
+.vscode/*
+!.vscode/launch.json
 htmlcov/
 
 # Model checkpoints
@@ -25,3 +26,4 @@ data/
 outputs/
 plots/
 plots_*/
+results/smoke/

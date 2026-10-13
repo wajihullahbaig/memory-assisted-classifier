@@ -1,0 +1,47 @@
+device: cuda | Config(backbone='resnet18', exit_layer='layer2', img_size=64, memory_size=10000, key_dim=128, k=10, temperature=0.07, mem_weight=1.0, batch_size=256, lr=0.001, weight_decay=0.05, max_steps=6000, eval_every=300, patience=5, max_drop=0.5, seed=0, out_dir='results')
+[memory] step   300 | loss 10.160 | val acc 82.14 | memory acc 70.80 | early exits 33.8% | 54s  *
+[memory] step   600 | loss 8.771 | val acc 88.36 | memory acc 79.28 | early exits 53.8% | 110s  *
+[memory] step   900 | loss 8.405 | val acc 89.38 | memory acc 82.06 | early exits 61.9% | 159s  *
+[memory] step  1200 | loss 8.184 | val acc 88.98 | memory acc 83.70 | early exits 75.7% | 298s
+[memory] step  1500 | loss 8.039 | val acc 90.90 | memory acc 86.14 | early exits 71.5% | 346s  *
+[memory] step  1800 | loss 7.945 | val acc 91.64 | memory acc 87.20 | early exits 74.4% | 398s  *
+[memory] step  2100 | loss 7.854 | val acc 91.76 | memory acc 87.94 | early exits 81.2% | 452s  *
+[memory] step  2400 | loss 7.773 | val acc 91.78 | memory acc 88.66 | early exits 86.4% | 626s  *
+[memory] step  2700 | loss 7.717 | val acc 92.26 | memory acc 89.44 | early exits 87.2% | 741s  *
+[memory] step  3000 | loss 7.665 | val acc 92.28 | memory acc 89.72 | early exits 90.6% | 792s  *
+[memory] step  3300 | loss 7.611 | val acc 92.44 | memory acc 89.88 | early exits 89.0% | 844s  *
+[memory] step  3600 | loss 7.577 | val acc 93.00 | memory acc 90.44 | early exits 88.8% | 893s  *
+[memory] step  3900 | loss 7.546 | val acc 93.32 | memory acc 90.54 | early exits 85.4% | 943s  *
+[memory] step  4200 | loss 7.513 | val acc 93.20 | memory acc 90.74 | early exits 87.0% | 994s
+[memory] step  4500 | loss 7.488 | val acc 93.42 | memory acc 90.80 | early exits 84.8% | 1042s  *
+[memory] step  4800 | loss 7.472 | val acc 93.64 | memory acc 91.16 | early exits 89.9% | 1094s  *
+[memory] step  5100 | loss 7.454 | val acc 93.78 | memory acc 91.26 | early exits 85.5% | 1139s  *
+[memory] step  5400 | loss 7.442 | val acc 93.82 | memory acc 91.40 | early exits 85.8% | 1183s  *
+[memory] step  5700 | loss 7.442 | val acc 93.66 | memory acc 91.36 | early exits 90.5% | 1229s
+[memory] step  6000 | loss 7.443 | val acc 93.66 | memory acc 91.32 | early exits 87.3% | 1276s
+[baseline] step   300 | loss 1.437 | val acc 81.58 | memory acc 62.04 | early exits 18.6% | 42s  *
+[baseline] step   600 | loss 0.410 | val acc 86.52 | memory acc 62.80 | early exits 13.1% | 86s  *
+[baseline] step   900 | loss 0.284 | val acc 90.64 | memory acc 66.34 | early exits 16.8% | 129s  *
+[baseline] step  1200 | loss 0.214 | val acc 89.42 | memory acc 63.52 | early exits 14.2% | 171s
+[baseline] step  1500 | loss 0.171 | val acc 90.84 | memory acc 66.76 | early exits 16.0% | 213s  *
+[baseline] step  1800 | loss 0.141 | val acc 90.74 | memory acc 66.02 | early exits 16.6% | 256s
+[baseline] step  2100 | loss 0.117 | val acc 91.08 | memory acc 66.56 | early exits 16.5% | 301s  *
+[baseline] step  2400 | loss 0.092 | val acc 90.74 | memory acc 65.86 | early exits 14.9% | 345s
+[baseline] step  2700 | loss 0.082 | val acc 92.06 | memory acc 66.40 | early exits 23.9% | 389s  *
+[baseline] step  3000 | loss 0.063 | val acc 91.96 | memory acc 66.72 | early exits 17.0% | 431s
+[baseline] step  3300 | loss 0.050 | val acc 93.04 | memory acc 67.02 | early exits 16.9% | 473s  *
+[baseline] step  3600 | loss 0.041 | val acc 93.52 | memory acc 67.94 | early exits 17.5% | 515s  *
+[baseline] step  3900 | loss 0.033 | val acc 93.34 | memory acc 67.04 | early exits 17.7% | 557s
+[baseline] step  4200 | loss 0.024 | val acc 93.66 | memory acc 67.74 | early exits 17.8% | 600s  *
+[baseline] step  4500 | loss 0.020 | val acc 93.70 | memory acc 67.72 | early exits 17.9% | 644s  *
+[baseline] step  4800 | loss 0.015 | val acc 93.82 | memory acc 67.88 | early exits 17.9% | 688s  *
+[baseline] step  5100 | loss 0.013 | val acc 94.00 | memory acc 68.16 | early exits 18.3% | 733s  *
+[baseline] step  5400 | loss 0.011 | val acc 94.12 | memory acc 68.24 | early exits 17.9% | 777s  *
+[baseline] step  5700 | loss 0.010 | val acc 94.02 | memory acc 68.10 | early exits 18.1% | 819s
+[baseline] step  6000 | loss 0.011 | val acc 94.02 | memory acc 67.88 | early exits 18.4% | 860s
+Final results (test set, CIFAR-10)
+run         full acc  exit acc   exits  thresh     GPU     CPU
+--------------------------------------------------------------
+memory         93.32     92.79   85.4%    0.81   1.33x   1.70x
+baseline       93.41     93.06   18.4%    0.81   0.99x   1.02x
+Plots and results.json written to results/
