@@ -10,6 +10,7 @@ class EarlyExitClassifier(nn.Module):
     the late stages and the head only run for images the memory is unsure about."""
 
     def __init__(self, cfg, num_classes=10):
+        """Build the split backbone, key projection, head and memory."""
         super().__init__()
         net = timm.create_model(cfg.backbone, pretrained=True, num_classes=0)
         stages = ["layer1", "layer2", "layer3", "layer4"]
@@ -23,12 +24,15 @@ class EarlyExitClassifier(nn.Module):
         self.memory = Memory(cfg.memory_size, cfg.key_dim, num_classes, cfg.k, cfg.temperature)
 
     def keys(self, h):
+        """Memory key from early-stage features."""
         return self.proj(h.mean((2, 3)))
 
     def classify(self, h):
+        """Full-network logits from early-stage features."""
         return self.head(self.late(h).mean((2, 3)))
 
     def forward(self, x):
+        """Memory keys and full-network logits for a batch."""
         h = self.early(x)
         return self.keys(h), self.classify(h)
 

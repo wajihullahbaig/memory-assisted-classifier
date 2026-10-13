@@ -11,11 +11,13 @@ STATE = ("step", "history", "best", "best_state", "bad", "done")  # training sta
 
 
 def forever(loader):
+    """Loop over a loader endlessly."""
     while True:
         yield from loader
 
 
 def validate(model, data, cfg):
+    """Validation accuracy, memory accuracy and early-exit rate."""
     fill_memory(model, data["memory"])
     out = collect(model, data["val"])
     best = score(out, calibrate(out, cfg.max_drop))

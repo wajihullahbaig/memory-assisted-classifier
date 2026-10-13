@@ -3,6 +3,7 @@ from dataclasses import dataclass
 
 @dataclass
 class Config:
+    """All experiment settings; every field is also a command-line flag."""
     # model
     backbone: str = "resnet18"      # any timm ResNet
     exit_layer: str = "layer2"      # memory lookup happens after this stage

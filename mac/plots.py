@@ -18,6 +18,7 @@ plt.rcParams.update({
 
 
 def _save(fig, path):
+    """Lay out, save and close a figure."""
     fig.tight_layout()
     fig.savefig(path, dpi=160)
     plt.close(fig)

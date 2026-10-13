@@ -10,6 +10,7 @@ class Memory(nn.Module):
     """
 
     def __init__(self, size, dim, num_classes, k=10, temperature=0.07):
+        """Empty memory with `size` slots of `dim`-dimensional keys."""
         super().__init__()
         self.num_classes, self.k, self.temperature = num_classes, k, temperature
         self.register_buffer("keys", torch.zeros(size, dim))
@@ -18,11 +19,13 @@ class Memory(nn.Module):
         self.register_buffer("count", torch.zeros((), dtype=torch.long))
 
     def reset(self):
+        """Forget all entries."""
         self.ptr.zero_()
         self.count.zero_()
 
     @torch.no_grad()
     def add(self, keys, labels):
+        """Write keys and labels, overwriting the oldest entries when full."""
         size = len(self.keys)
         idx = (self.ptr + torch.arange(len(keys), device=keys.device)) % size
         self.keys[idx] = F.normalize(keys.float(), dim=1)
@@ -31,6 +34,7 @@ class Memory(nn.Module):
         self.count.copy_((self.count + len(keys)).clamp(max=size))
 
     def similarity(self, keys):
+        """Cosine similarity of keys to every stored entry, plus the entries' labels."""
         n = int(self.count)
         return F.normalize(keys, dim=1) @ self.keys[:n].to(keys.dtype).T, self.labels[:n]
 

@@ -19,6 +19,7 @@ RUNS = {"memory": {}, "baseline": {"mem_weight": 0.0}}
 
 
 def run(name, cfg, device, out, log):
+    """Train, calibrate, evaluate and benchmark one run."""
     torch.manual_seed(cfg.seed)
     data = get_data(cfg, device)
     model = EarlyExitClassifier(cfg).to(device)
@@ -39,6 +40,7 @@ def run(name, cfg, device, out, log):
 
 
 def report(results):
+    """Final results as a text table."""
     head = f"{'run':<10}{'full acc':>10}{'exit acc':>10}{'exits':>8}{'thresh':>8}{'GPU':>8}{'CPU':>8}"
     lines = [head, "-" * len(head)]
     for name, r in results.items():
@@ -48,6 +50,7 @@ def report(results):
 
 
 def main():
+    """Parse flags, run every experiment, write plots, results and logs."""
     parser = argparse.ArgumentParser(description="Memory-assisted early-exit classifier on CIFAR-10")
     for f in fields(Config):
         flag = f"--{f.name.replace('_', '-')}"
@@ -66,6 +69,7 @@ def main():
     log_file = open(out / "train.log", "a" if cfg.resume else "w")
 
     def log(msg=""):
+        """Print a line and append it to train.log."""
         tqdm.write(msg)
         log_file.write(msg + "\n")
         log_file.flush()

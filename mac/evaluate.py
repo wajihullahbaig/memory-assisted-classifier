@@ -6,10 +6,12 @@ THRESHOLDS = [i / 100 for i in range(102)]  # 1.01 = never exit early
 
 
 def autocast(device):
+    """fp16 mixed precision on CUDA, no-op on CPU."""
     return torch.autocast(device.type, dtype=torch.float16, enabled=device.type == "cuda")
 
 
 def sync(device):
+    """Wait for queued GPU work so timings are accurate."""
     if device.type == "cuda":
         torch.cuda.synchronize()
 
@@ -39,16 +41,19 @@ def collect(model, loader):
 
 
 def accuracy(pred, y):
+    """Accuracy in percent."""
     return (pred == y).float().mean().item() * 100
 
 
 def score(out, threshold):
+    """Early-exit accuracy and exit rate at one threshold."""
     hit = out["conf"] >= threshold
     pred = torch.where(hit, out["mem"], out["full"])
     return {"threshold": threshold, "acc": accuracy(pred, out["y"]), "exits": hit.float().mean().item() * 100}
 
 
 def sweep(out):
+    """Score every threshold in THRESHOLDS."""
     return [score(out, t) for t in THRESHOLDS]
 
 
@@ -59,6 +64,7 @@ def calibrate(out, max_drop):
 
 
 def summarize(out, threshold):
+    """Final test metrics at the calibrated threshold."""
     return {
         "full_acc": accuracy(out["full"], out["y"]),
         "memory_acc": accuracy(out["mem"], out["y"]),
@@ -72,6 +78,7 @@ def throughput(model, x, threshold, batch_size, reps=3):
     model.eval()
 
     def run():
+        """One pass over all images."""
         with autocast(x.device):
             for xb in x.split(batch_size):
                 model.predict(xb, threshold)
@@ -86,6 +93,7 @@ def throughput(model, x, threshold, batch_size, reps=3):
 
 
 def benchmark(model, x, threshold, batch_size, reps=3):
+    """Throughput of the full network vs early exit, and the speedup."""
     full = throughput(model, x, None, batch_size, reps)
     exit_ = throughput(model, x, threshold, batch_size, reps)
     return {"full_ips": full, "exit_ips": exit_, "speedup": exit_ / full}

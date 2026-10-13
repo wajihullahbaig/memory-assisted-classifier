@@ -23,18 +23,22 @@ class Loader:
     """Batches a uint8 image tensor that lives on the device. No workers, no copies."""
 
     def __init__(self, x, y, batch_size, train=False, img_size=32):
+        """Wrap images [N, 3, H, W] (uint8) and labels [N] on one device."""
         self.x, self.y, self.batch_size, self.train, self.img_size = x, y, batch_size, train, img_size
 
     def __len__(self):
+        """Number of batches."""
         return -(-len(self.x) // self.batch_size)
 
     def __iter__(self):
+        """Yield (images, labels) batches, shuffled when training."""
         n, dev = len(self.x), self.x.device
         order = torch.randperm(n, device=dev) if self.train else torch.arange(n, device=dev)
         for idx in order.split(self.batch_size):
             yield self.prep(self.x[idx]), self.y[idx]
 
     def prep(self, x):
+        """Normalise, augment (train only) and resize a uint8 batch."""
         x = (x.float() / 255 - MEAN.to(x.device)) / STD.to(x.device)
         if self.train:
             x = augment(x)
@@ -47,6 +51,7 @@ def get_data(cfg, device, val_size=5000):
     """CIFAR-10 on the device: train / val split, a clean memory set, and test."""
 
     def load(train):
+        """One CIFAR-10 split as device tensors."""
         ds = torchvision.datasets.CIFAR10("data", train=train, download=True)
         return torch.tensor(ds.data).permute(0, 3, 1, 2).to(device), torch.tensor(ds.targets).to(device)
 
@@ -56,6 +61,7 @@ def get_data(cfg, device, val_size=5000):
     val, train, mem = perm[:val_size], perm[val_size:], perm[val_size:val_size + cfg.memory_size]
 
     def loader(idx=None, train=False, xs=x, ys=y):
+        """Loader over a subset (idx) of a split."""
         xs, ys = (xs, ys) if idx is None else (xs[idx], ys[idx])
         return Loader(xs, ys, cfg.batch_size, train, cfg.img_size)
 
