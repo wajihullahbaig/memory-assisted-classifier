@@ -1,0 +1,86 @@
+device: cuda | Config(backbone='resnet18', exit_layer='layer3', img_size=64, memory_size=10000, key_dim=128, k=10, temperature=0.07, mem_weight=1.0, batch_size=256, lr=0.001, weight_decay=0.05, max_steps=6000, eval_every=300, patience=5, resume=False, max_drop=0.5, seed=0, out_dir='results/incremental_layer3') | {'old_classes': 5, 'shots': [1, 5, 10, 50, 100, 1000], 'finetune_steps': 500, 'finetune_lr': 0.001, 'joint_ckpt': ''}
+[base_memory] step   300 | loss 9.572 | val acc 92.20 | memory acc 91.88 | early exits 100.0% | 11s  *
+[base_memory] step   600 | loss 8.231 | val acc 92.91 | memory acc 94.21 | early exits 100.0% | 21s  *
+[base_memory] step   900 | loss 7.977 | val acc 94.68 | memory acc 95.27 | early exits 100.0% | 32s  *
+[base_memory] step  1200 | loss 7.854 | val acc 95.47 | memory acc 95.59 | early exits 100.0% | 43s  *
+[base_memory] step  1500 | loss 7.787 | val acc 95.51 | memory acc 95.55 | early exits 100.0% | 56s  *
+[base_memory] step  1800 | loss 7.740 | val acc 95.55 | memory acc 95.86 | early exits 100.0% | 69s  *
+[base_memory] step  2100 | loss 7.704 | val acc 95.90 | memory acc 95.90 | early exits 100.0% | 83s  *
+[base_memory] step  2400 | loss 7.680 | val acc 95.94 | memory acc 96.22 | early exits 100.0% | 96s  *
+[base_memory] step  2700 | loss 7.662 | val acc 96.18 | memory acc 96.38 | early exits 100.0% | 125s  *
+[base_memory] step  3000 | loss 7.649 | val acc 96.61 | memory acc 97.04 | early exits 100.0% | 172s  *
+[base_memory] step  3300 | loss 7.634 | val acc 96.22 | memory acc 96.22 | early exits 100.0% | 219s
+[base_memory] step  3600 | loss 7.629 | val acc 96.49 | memory acc 96.18 | early exits 100.0% | 266s
+[base_memory] step  3900 | loss 7.617 | val acc 96.53 | memory acc 96.30 | early exits 100.0% | 345s
+[base_memory] step  4200 | loss 7.608 | val acc 96.97 | memory acc 96.93 | early exits 100.0% | 416s  *
+[base_memory] step  4500 | loss 7.605 | val acc 97.08 | memory acc 96.81 | early exits 100.0% | 467s  *
+[base_memory] step  4800 | loss 7.603 | val acc 97.32 | memory acc 96.81 | early exits 99.8% | 529s  *
+[base_memory] step  5100 | loss 7.600 | val acc 97.20 | memory acc 97.01 | early exits 100.0% | 594s
+[base_memory] step  5400 | loss 7.598 | val acc 97.32 | memory acc 97.01 | early exits 100.0% | 660s
+[base_memory] step  5700 | loss 7.597 | val acc 97.12 | memory acc 97.01 | early exits 100.0% | 709s
+[base_memory] step  6000 | loss 7.598 | val acc 97.24 | memory acc 96.97 | early exits 100.0% | 756s
+[memory insert]     1 images/class | old 96.58 | new 0.00 | all 48.29 | dog->cat 85%, frog->cat 55%, horse->deer 64%, ship->airplane 75%, truck->automobile 78%
+[memory insert]     5 images/class | old 96.58 | new 0.10 | all 48.34 | dog->cat 85%, frog->cat 55%, horse->deer 64%, ship->airplane 75%, truck->automobile 77%
+[memory insert]    10 images/class | old 96.36 | new 1.54 | all 48.95 | dog->cat 84%, frog->cat 53%, horse->deer 62%, ship->airplane 74%, truck->automobile 76%
+[memory insert]    50 images/class | old 94.24 | new 12.14 | all 53.19 | dog->cat 79%, frog->cat 44%, horse->deer 52%, ship->airplane 64%, truck->automobile 61%
+[memory insert]   100 images/class | old 92.38 | new 20.54 | all 56.46 | dog->cat 74%, frog->cat 36%, horse->deer 42%, ship->airplane 58%, truck->automobile 52%
+[memory insert]  1000 images/class | old 82.32 | new 50.88 | all 66.60 | dog->cat 42%, frog->frog 51%, horse->horse 60%, ship->ship 49%, truck->truck 59%
+[finetune] step   500 | loss 8.905 | val acc 95.13 | memory acc 95.21 | early exits 100.0% | 85s  *
+[base_baseline] step   300 | loss 1.133 | val acc 91.37 | memory acc 87.98 | early exits 80.1% | 47s  *
+[base_baseline] step   600 | loss 0.199 | val acc 93.30 | memory acc 90.19 | early exits 84.9% | 101s  *
+[base_baseline] step   900 | loss 0.107 | val acc 94.84 | memory acc 91.57 | early exits 88.4% | 171s  *
+[base_baseline] step  1200 | loss 0.068 | val acc 95.27 | memory acc 92.47 | early exits 89.2% | 234s  *
+[base_baseline] step  1500 | loss 0.050 | val acc 95.23 | memory acc 91.45 | early exits 86.8% | 285s
+[base_baseline] step  1800 | loss 0.037 | val acc 95.27 | memory acc 92.24 | early exits 91.3% | 346s
+[base_baseline] step  2100 | loss 0.031 | val acc 95.43 | memory acc 92.95 | early exits 90.4% | 407s  *
+[base_baseline] step  2400 | loss 0.023 | val acc 95.74 | memory acc 93.30 | early exits 89.8% | 471s  *
+[base_baseline] step  2700 | loss 0.019 | val acc 95.63 | memory acc 92.24 | early exits 85.1% | 531s
+[base_baseline] step  3000 | loss 0.015 | val acc 95.90 | memory acc 92.79 | early exits 87.3% | 573s  *
+[base_baseline] step  3300 | loss 0.012 | val acc 96.10 | memory acc 93.77 | early exits 90.8% | 626s  *
+[base_baseline] step  3600 | loss 0.009 | val acc 96.38 | memory acc 93.74 | early exits 88.8% | 686s  *
+[base_baseline] step  3900 | loss 0.006 | val acc 96.65 | memory acc 93.97 | early exits 89.0% | 732s  *
+[base_baseline] step  4200 | loss 0.005 | val acc 96.49 | memory acc 93.26 | early exits 86.9% | 795s
+[base_baseline] step  4500 | loss 0.003 | val acc 96.53 | memory acc 93.74 | early exits 90.0% | 862s
+[base_baseline] step  4800 | loss 0.002 | val acc 96.77 | memory acc 93.85 | early exits 88.4% | 928s  *
+[base_baseline] step  5100 | loss 0.002 | val acc 96.77 | memory acc 93.85 | early exits 87.4% | 996s
+[base_baseline] step  5400 | loss 0.002 | val acc 96.69 | memory acc 93.66 | early exits 87.5% | 1064s
+[base_baseline] step  5700 | loss 0.001 | val acc 96.49 | memory acc 93.85 | early exits 87.2% | 1128s
+[base_baseline] step  6000 | loss 0.001 | val acc 96.69 | memory acc 93.89 | early exits 87.5% | 1186s
+[memory insert (no memory loss)]     1 images/class | old 93.68 | new 0.00 | all 46.84 | dog->cat 83%, frog->cat 44%, horse->deer 69%, ship->airplane 82%, truck->automobile 72%
+[memory insert (no memory loss)]     5 images/class | old 93.66 | new 0.00 | all 46.83 | dog->cat 83%, frog->cat 44%, horse->deer 69%, ship->airplane 82%, truck->automobile 72%
+[memory insert (no memory loss)]    10 images/class | old 93.64 | new 0.06 | all 46.85 | dog->cat 83%, frog->cat 44%, horse->deer 68%, ship->airplane 82%, truck->automobile 71%
+[memory insert (no memory loss)]    50 images/class | old 93.62 | new 6.86 | all 50.24 | dog->cat 81%, frog->cat 42%, horse->deer 60%, ship->airplane 77%, truck->automobile 65%
+[memory insert (no memory loss)]   100 images/class | old 93.34 | new 20.02 | all 56.68 | dog->cat 77%, frog->cat 31%, horse->deer 48%, ship->airplane 66%, truck->automobile 54%
+[memory insert (no memory loss)]  1000 images/class | old 80.02 | new 78.82 | all 79.42 | dog->dog 65%, frog->frog 86%, horse->horse 81%, ship->ship 81%, truck->truck 81%
+[joint] step   300 | loss 9.839 | val acc 82.30 | memory acc 83.14 | early exits 100.0% | 54s  *
+[joint] step   600 | loss 8.215 | val acc 88.30 | memory acc 88.16 | early exits 100.0% | 100s  *
+[joint] step   900 | loss 7.875 | val acc 90.12 | memory acc 89.78 | early exits 100.0% | 145s  *
+[joint] step  1200 | loss 7.679 | val acc 90.56 | memory acc 90.76 | early exits 100.0% | 191s  *
+[joint] step  1500 | loss 7.557 | val acc 91.30 | memory acc 90.68 | early exits 99.5% | 236s  *
+[joint] step  1800 | loss 7.471 | val acc 91.44 | memory acc 91.62 | early exits 100.0% | 281s  *
+[joint] step  2100 | loss 7.397 | val acc 90.86 | memory acc 91.38 | early exits 100.0% | 327s
+[joint] step  2400 | loss 7.324 | val acc 91.92 | memory acc 92.62 | early exits 100.0% | 372s  *
+[joint] step  2700 | loss 7.278 | val acc 92.60 | memory acc 92.42 | early exits 100.0% | 418s  *
+[joint] step  3000 | loss 7.238 | val acc 92.78 | memory acc 93.04 | early exits 100.0% | 463s  *
+[joint] step  3300 | loss 7.192 | val acc 93.28 | memory acc 93.08 | early exits 100.0% | 508s  *
+[joint] step  3600 | loss 7.163 | val acc 93.52 | memory acc 93.52 | early exits 100.0% | 554s  *
+[joint] step  3900 | loss 7.129 | val acc 93.64 | memory acc 93.54 | early exits 100.0% | 599s  *
+[joint] step  4200 | loss 7.102 | val acc 93.92 | memory acc 93.58 | early exits 100.0% | 645s  *
+[joint] step  4500 | loss 7.085 | val acc 93.96 | memory acc 93.76 | early exits 100.0% | 690s  *
+[joint] step  4800 | loss 7.072 | val acc 94.16 | memory acc 94.16 | early exits 100.0% | 737s  *
+[joint] step  5100 | loss 7.058 | val acc 94.38 | memory acc 94.16 | early exits 100.0% | 784s  *
+[joint] step  5400 | loss 7.052 | val acc 94.16 | memory acc 94.22 | early exits 100.0% | 830s
+[joint] step  5700 | loss 7.048 | val acc 94.10 | memory acc 94.14 | early exits 100.0% | 876s
+[joint] step  6000 | loss 7.050 | val acc 94.22 | memory acc 94.14 | early exits 100.0% | 921s
+
+Final results (CIFAR-10 test set, old = classes [0, 1, 2, 3, 4], new = classes [5, 6, 7, 8, 9])
+
+method                                        steps     time     old     new     all
+------------------------------------------------------------------------------------
+memory insert, 1000/class                         0    0.79s   82.32   50.88   66.60
+memory insert (no memory loss), 1000/class        0    1.01s   80.02   78.82   79.42
+fine-tune on new classes                        500   85.23s    0.22   94.94   47.58
+joint training, full network                      -        -   93.36   94.52   93.94
+joint training, memory only                       -        -   92.84   94.46   93.65
+
+Plots, results.json and incremental.log written to results\incremental_layer3/

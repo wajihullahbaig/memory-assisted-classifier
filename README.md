@@ -121,6 +121,34 @@ Takeaways:
 Full log: [results/incremental/incremental.log](results/incremental/incremental.log). All numbers,
 including every point of the sweep: [results/incremental/results.json](results/incremental/results.json).
 
+### Exit layer and memory loss
+
+Memory insert with 1000 images per new class, accuracy on all 10 classes. Joint training is the
+memory-only accuracy of a model trained on all 10 classes with the same exit layer.
+
+| exit after | memory loss 1.0 | memory loss 0.1 | no memory loss | joint training |
+|------------|-----------------|-----------------|----------------|----------------|
+| layer2     | 66.65           | 67.49           | 64.29          | 90.46          |
+| layer3     | 66.60           | -               | **79.42**      | 93.65          |
+
+- Exiting after `layer3` without the memory loss is the best setting: 80.0% on old classes,
+  78.8% on new classes. The gap to joint training shrinks from 26 to 14 points.
+- The memory loss works against adding classes. At `layer3` it costs 28 points on the new classes
+  (50.88 vs 78.82): it tightens the clusters of the classes it was trained on, and the features
+  transfer less to unseen ones. Lowering its weight to 0.1 changes little.
+- With 1-10 images per new class, the new classes still get 0-1.5% in every setting, with the same
+  look-alikes (dog -> cat, ship -> airplane, truck -> automobile, horse -> deer).
+- Fine-tuning gets 47-48% overall in every setting (under 1% on old classes).
+
+```bash
+python incremental.py --exit-layer layer3 --joint-ckpt "" --out-dir results/incremental_layer3
+python incremental.py --mem-weight 0.1 --out-dir results/incremental_memw0.1
+```
+
+Logs and numbers: [results/incremental_layer3/](results/incremental_layer3/),
+[results/incremental_memw0.1/](results/incremental_memw0.1/). Timings from these two runs are
+left out: another CPU-heavy job was running on the machine at the same time.
+
 ## How it works
 
 - **Memory** ([mac/memory.py](mac/memory.py)): a ring buffer of normalised keys and labels.
