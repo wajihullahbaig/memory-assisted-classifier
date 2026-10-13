@@ -44,6 +44,23 @@
             "args": ["--max-steps", "200", "--eval-every", "50", "--memory-size", "2000", "--out-dir", "results/smoke", "--resume"],
             "cwd": "${workspaceFolder}",
             "console": "integratedTerminal"
+        },
+        {
+            "name": "Incremental classes (memory insert vs fine-tune)",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/incremental.py",
+            "cwd": "${workspaceFolder}",
+            "console": "integratedTerminal"
+        },
+        {
+            "name": "Incremental quick smoke test (~2 min)",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/incremental.py",
+            "args": ["--max-steps", "200", "--eval-every", "50", "--memory-size", "2000", "--finetune-steps", "50", "--joint-ckpt", "", "--out-dir", "results/smoke/incremental"],
+            "cwd": "${workspaceFolder}",
+            "console": "integratedTerminal"
         }
     ]
 }

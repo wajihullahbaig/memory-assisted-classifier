@@ -1,14 +1,14 @@
 import argparse
 import copy
 import json
-from dataclasses import asdict, fields, replace
+from dataclasses import asdict, replace
 from pathlib import Path
 
 import torch
 from tqdm import tqdm
 
 from mac import plots
-from mac.config import Config
+from mac.config import Config, add_flags
 from mac.data import get_data
 from mac.evaluate import benchmark, calibrate, collect, fill_memory, summarize, sweep
 from mac.model import EarlyExitClassifier
@@ -52,12 +52,7 @@ def report(results):
 def main():
     """Parse flags, run every experiment, write plots, results and logs."""
     parser = argparse.ArgumentParser(description="Memory-assisted early-exit classifier on CIFAR-10")
-    for f in fields(Config):
-        flag = f"--{f.name.replace('_', '-')}"
-        if isinstance(f.default, bool):
-            parser.add_argument(flag, action="store_true")
-        else:
-            parser.add_argument(flag, type=type(f.default), default=f.default)
+    add_flags(parser)
     parser.add_argument("--runs", nargs="+", default=list(RUNS), choices=list(RUNS))
     args = vars(parser.parse_args())
     runs = args.pop("runs")

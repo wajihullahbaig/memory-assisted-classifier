@@ -86,3 +86,48 @@ def summary(results, path):
         ax.set_title(title)
     axes[1].axvline(1, color=MUTED, linewidth=1, linestyle=":")
     _save(fig, path)
+
+
+def _splits(n_old, n=10):
+    """(key, title) for the old, new and all-class accuracy panels."""
+    return [("old", f"Old classes (0-{n_old - 1})"), ("new", f"New classes ({n_old}-{n - 1})"), ("all", f"All {n} classes")]
+
+
+def shots(sweeps, refs, n_old, path):
+    """Test accuracy vs images added per new class, with fixed reference methods as dotted lines."""
+    fig, axes = plt.subplots(1, 3, figsize=(14, 4), sharey=True)
+    for ax, (key, title) in zip(axes, _splits(n_old)):
+        for color, (name, sweep) in zip(COLORS, sweeps.items()):
+            ax.plot([s["shots"] for s in sweep], [s[key] for s in sweep], color=color, label=name, marker="o", markersize=5)
+        for color, (name, r) in zip(COLORS[len(sweeps):], refs.items()):
+            ax.axhline(r[key], color=color, linewidth=1.5, linestyle=":", label=name)
+        ax.set_xscale("log")
+        ticks = [s["shots"] for s in next(iter(sweeps.values()))]
+        ax.set_xticks(ticks, [str(t) for t in ticks])
+        ax.minorticks_off()
+        ax.set_ylim(-3, 103)
+        ax.set_title(title)
+        ax.set_xlabel("images added per new class")
+    axes[0].set_ylabel("test accuracy (%)")
+    axes[0].legend(loc="lower right", fontsize=8.5)
+    _save(fig, path)
+
+
+def forgetting(rows, n_old, path):
+    """Old, new and all-class test accuracy for each method as grouped horizontal bars."""
+    names = list(rows)
+    fig, ax = plt.subplots(figsize=(9, 0.9 + 0.75 * len(names)))
+    height = 0.24
+    for i, (color, (key, label)) in enumerate(zip(COLORS, _splits(n_old))):
+        y = [len(names) - 1 - n + (1 - i) * (height + 0.03) for n in range(len(names))]
+        values = [rows[n][key] for n in names]
+        ax.barh(y, values, height=height, color=color, label=label)
+        for yi, v in zip(y, values):
+            ax.text(v, yi, f" {v:.1f}", va="center", color=INK, fontsize=8.5)
+    ax.set_yticks(range(len(names))[::-1], names)
+    ax.set_xlim(0, 110)
+    ax.grid(axis="y", visible=False)
+    ax.set_xlabel("test accuracy (%)")
+    ax.set_title(f"Adding classes {n_old}-9 to a model trained on classes 0-{n_old - 1}")
+    ax.legend(loc="upper center", bbox_to_anchor=(0.5, -0.12 - 0.3 / len(names)), ncol=3)
+    _save(fig, path)

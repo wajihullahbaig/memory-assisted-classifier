@@ -17,10 +17,11 @@ def sync(device):
 
 
 @torch.no_grad()
-def fill_memory(model, loader):
-    """Rebuild the memory from clean (un-augmented) training images."""
+def fill_memory(model, loader, reset=True):
+    """Write clean (un-augmented) training images into the memory, emptying it first by default."""
     model.eval()
-    model.memory.reset()
+    if reset:
+        model.memory.reset()
     for x, y in loader:
         with autocast(x.device):
             model.memory.add(model.keys(model.early(x)), y)

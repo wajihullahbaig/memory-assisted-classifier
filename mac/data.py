@@ -47,6 +47,12 @@ class Loader:
         return x
 
 
+def select(loader, classes, per_class=None):
+    """Loader over only `classes`, keeping the first `per_class` images of each (all if None)."""
+    idx = torch.cat([(loader.y == c).nonzero().flatten()[:per_class] for c in classes]).sort().values
+    return Loader(loader.x[idx], loader.y[idx], loader.batch_size, loader.train, loader.img_size)
+
+
 def get_data(cfg, device, val_size=5000):
     """CIFAR-10 on the device: train / val split, a clean memory set, and test."""
 

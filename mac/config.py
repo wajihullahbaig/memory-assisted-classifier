@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, fields
 
 
 @dataclass
@@ -26,3 +26,13 @@ class Config:
     max_drop: float = 0.5           # accuracy points we accept losing for speed
     seed: int = 0
     out_dir: str = "results"
+
+
+def add_flags(parser):
+    """Add every Config field to an argparse parser as --field-name."""
+    for f in fields(Config):
+        flag = f"--{f.name.replace('_', '-')}"
+        if isinstance(f.default, bool):
+            parser.add_argument(flag, action="store_true")
+        else:
+            parser.add_argument(flag, type=type(f.default), default=f.default)
